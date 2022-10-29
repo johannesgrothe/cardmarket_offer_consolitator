@@ -1,0 +1,6 @@
+[run]
+source = .
+omit = *tests*,__init__.py,conftest.py,*test_helpers/*
+
+[report]
+omit = *tests*,__init__.py,conftest.py,*test_helpers/*

@@ -6,35 +6,26 @@ from bs4 import BeautifulSoup
 import requests
 from typing import Optional, List, Union
 
+from card import Card
 from card_attributes import Language, CardCondition, SellerCountry, SellerType
+from offer import Offer
 
 _base_url = "https://www.cardmarket.com/de/Magic/Products/Singles"
 
 
-class Offer:
-    _seller: str
-    _amount: int
-    _price: float
+class DataLoadError(Exception):
+    def __init__(self, code: int, msg: Optional[str] = None):
+        if msg is None:
+            msg = f"Server returned non-200 status code {code}"
+        super().__init__(msg)
 
-    def __init__(self, seller: str, amount: int, price: float):
-        self._seller = seller
-        self._amount = amount
-        self._price = price
 
-    def __str__(self):
-        return f"{self._seller}: {self._amount} for {self._price}"
+class ProductError(Exception):
+    pass
 
-    @property
-    def seller(self) -> str:
-        return self._seller
 
-    @property
-    def amount(self) -> int:
-        return self._amount
-
-    @property
-    def price(self) -> float:
-        return self._price
+class ExpansionError(Exception):
+    pass
 
 
 class CardmarketLoader:
@@ -47,6 +38,7 @@ class CardmarketLoader:
     def __init__(self, language: Optional[Language] = None, min_condition: Optional[CardCondition] = None,
                  seller_country: Optional[List[SellerCountry]] = None, seller_type: Optional[List[SellerType]] = None):
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger.info(f"Creating CardmarketLoader")
         if seller_country is None:
             seller_country = []
         if seller_type is None:
@@ -81,12 +73,34 @@ class CardmarketLoader:
             params["sellerCountry"] = self._format_param(self._seller_country)
         return params
 
-    def load_card(self, edition: str, name: str) -> List[Offer]:
-        uri = self._build_uri(_base_url, edition, name)
+    @staticmethod
+    def _check_for_errors(html: str, card: Card):
+        expansion_error = True if re.findall("class=\"alert-heading\">Fehler: Ungültige Erweiterung</", html) else False
+        if expansion_error:
+            raise ExpansionError(f"Expansion {card.expansion} could not be found")
+
+        product_error = True if re.findall("class=\"alert-heading\">Ungültiges Produkt</", html) else False
+        if product_error:
+            raise ProductError(f"Card {card.name} could not be found in {card.expansion}")
+
+    def load_offers_for_card(self, card: Card) -> List[Offer]:
+        """
+        Loads the offers for the selected card from cardmarket
+
+        :param card: Card to look for
+        :return: List of all offers
+        :raises DataLoadError: If loading the data fails for any reason
+        """
+        self._logger.info(f"Loading offers for '{card}'")
+        uri = self._build_uri(_base_url, card.expansion, card.name)
         params = self._prepare_params()
         resp = requests.get(uri, params=params)
         if not resp.status_code == 200:
-            raise ConnectionError()
+            raise DataLoadError(resp.status_code)
+
+        self._check_for_errors(resp.text, card)
+
+        self._logger.debug("Got response without errors")
 
         sellers = re.findall("<div id=\"(articleRow\\d+?)\" class=\".+? article-row\">",
                              resp.text)
@@ -103,6 +117,5 @@ class CardmarketLoader:
                 price = float(price[0].replace(",", "."))
                 offers.append(Offer(name, count, price))
             except (IndexError, ValueError) as err:
-                self._logger.info(err.args[0])
-
+                self._logger.error(err.args[0])
         return offers

@@ -1,16 +1,31 @@
-# This is a sample Python script.
+import argparse
+import logging
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+from file_loader import FileLoader
 
 
-# Press the green button in the gutter to run the script.
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="CLI to get and group offers from cardmarket.com to get the lowest combined price")
+    parser.add_argument("--file", "-f", type=str, required=True, help="File to load the card identifiers from")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Activates debug output")
+    args = parser.parse_args()
+    return args
+
+
+def log_error(msg: str):
+    print(f"[x] {msg}")
+
+
+def main():
+    args = parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    loader = FileLoader(args.file, log_error)
+    print(f"[i] Loading Cards from {loader.file}")
+    cards = loader.parse()
+    print(f"[✓] {len(cards)} Cards loaded from File")
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main()

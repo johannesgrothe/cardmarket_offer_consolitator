@@ -14,10 +14,13 @@ _base_url = "https://www.cardmarket.com/de/Magic/Products/Singles"
 
 
 class DataLoadError(Exception):
+    code: int
+
     def __init__(self, code: int, msg: Optional[str] = None):
         if msg is None:
             msg = f"Server returned non-200 status code {code}"
         super().__init__(msg)
+        self.code = code
 
 
 class ProductError(Exception):
@@ -74,14 +77,22 @@ class CardmarketLoader:
         return params
 
     @staticmethod
-    def _check_for_errors(html: str, card: Card):
+    def _check_for_errors(html: str) -> None:
+        """
+        Checks the html response for any displayed errors
+
+        :param html: HTML-Code to parse
+        :return: None
+        :raises ExpansionError: If the website displays an expansion error
+        :raises ProductError: If the website raises an prodict error
+        """
         expansion_error = True if re.findall("class=\"alert-heading\">Fehler: Ungültige Erweiterung</", html) else False
         if expansion_error:
-            raise ExpansionError(f"Expansion {card.expansion} could not be found")
+            raise ExpansionError()
 
         product_error = True if re.findall("class=\"alert-heading\">Ungültiges Produkt</", html) else False
         if product_error:
-            raise ProductError(f"Card {card.name} could not be found in {card.expansion}")
+            raise ProductError()
 
     def load_offers_for_card(self, card: Card) -> List[Offer]:
         """
@@ -90,6 +101,8 @@ class CardmarketLoader:
         :param card: Card to look for
         :return: List of all offers
         :raises DataLoadError: If loading the data fails for any reason
+        :raises ExpansionError: If The expansion of the card is not legal
+        :raises ProductError: If the card does not exist
         """
         self._logger.info(f"Loading offers for '{card}'")
         uri = self._build_uri(_base_url, card.expansion, card.name)
@@ -98,7 +111,7 @@ class CardmarketLoader:
         if not resp.status_code == 200:
             raise DataLoadError(resp.status_code)
 
-        self._check_for_errors(resp.text, card)
+        self._check_for_errors(resp.text)
 
         self._logger.debug("Got response without errors")
 

@@ -17,6 +17,9 @@ class Card:
     def __ne__(self, other):
         return not self == other
 
+    def __hash__(self):
+        return hash(str(self))
+
     @property
     def expansion(self) -> str:
         return self._expansion

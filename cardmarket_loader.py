@@ -84,7 +84,7 @@ class CardmarketLoader:
         :param html: HTML-Code to parse
         :return: None
         :raises ExpansionError: If the website displays an expansion error
-        :raises ProductError: If the website raises an prodict error
+        :raises ProductError: If the website raises a prodict error
         """
         expansion_error = True if re.findall("class=\"alert-heading\">Fehler: Ungültige Erweiterung</", html) else False
         if expansion_error:
@@ -128,7 +128,7 @@ class CardmarketLoader:
                 name = name[0]
                 count = int(count[0])
                 price = float(price[0].replace(",", "."))
-                offers.append(Offer(name, count, price))
+                offers.append(Offer(card, name, count, price))
             except (IndexError, ValueError) as err:
                 self._logger.error(err.args[0])
         return offers

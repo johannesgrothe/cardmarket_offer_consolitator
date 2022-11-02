@@ -1,9 +1,13 @@
 import argparse
 import logging
 import sys
+from typing import Dict
 
+from card import Card
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
+from offer import Offer
+from order_finder import OrderFinder
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,7 +53,7 @@ def main():
             sys.exit(1)
 
     c_loader = CardmarketLoader()
-    offers = {}
+    all_offers = {}
     load_errs = 0
     exp_errs = 0
     product_errs = 0
@@ -57,7 +61,8 @@ def main():
         print(f"[i] Loading offers for {card}...")
         try:
             card_offers = c_loader.load_offers_for_card(card)
-            offers[card] = card_offers
+            card_offers.sort()
+            all_offers[card] = card_offers
             min_price = min([x.price for x in card_offers])
             max_price = max([x.price for x in card_offers])
             print(f"[✓] {len(card_offers)} offers fetched between {min_price}€ and {max_price}€")
@@ -68,12 +73,34 @@ def main():
             print(f"[x] '{card.expansion}' is no legal expansion")
             exp_errs += 1
         except ProductError:
-            print(f"[x] Card '{card.name}' does not exist in '{card.expansion}")
+            print(f"[x] Card '{card.name}' does not exist in '{card.expansion}'")
             product_errs += 1
-    total_offers = sum([len(x) for y, x in offers.items()])
-    legal_cards = len(offers.keys())
+    total_offers = sum([len(x) for y, x in all_offers.items()])
+    legal_cards = len(all_offers.keys())
     print(f"[✓] {total_offers} total offers collected for {legal_cards} cards")
+
+    OrderFinder.find_lowest_offer(all_offers)
+
+    # cheapest_combination: Dict[Card, Offer] = {}
+    # for _ in all_offers:
+    #     for card, offers in all_offers:
+    #         all_sellers = [x.seller for x in cheapest_combination.items()]
+    #         lowest_offer: offers[0]
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    card1 = Card("test1", "testcard1")
+    card2 = Card("test2", "testcard2")
+    all_offers = {card1: [Offer(card1, "seller1", 3, 0.13),
+                          Offer(card1, "seller2", 1, 0.20),
+                          Offer(card1, "seller3", 1, 0.34)],
+                  card2: [Offer(card2, "seller11", 2, 0.02),
+                          Offer(card2, "seller12", 2, 0.05),
+                          Offer(card2, "seller13", 4, 0.18),
+                          Offer(card2, "seller2", 1, 0.26)]
+                  }
+    print({str(a): [str(x) for x in b] for a, b in all_offers.items()})
+    lowest = OrderFinder(all_offers).find_lowest_offer()
+    print(lowest)
+    print(lowest.sum())

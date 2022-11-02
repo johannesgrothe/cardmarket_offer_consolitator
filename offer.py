@@ -1,18 +1,43 @@
+from card import Card
+from seller import Seller
+
+
 class Offer:
-    _seller: str
+    _card: Card
+    _seller: Seller
     _amount: int
     _price: float
 
-    def __init__(self, seller: str, amount: int, price: float):
+    def __init__(self, card: Card, seller: Seller, amount: int, price: float):
+        self._card = card
         self._seller = seller
         self._amount = amount
         self._price = price
+        self._shipping = 1.15
 
     def __str__(self):
-        return f"{self._seller}: {self._amount} for {self._price}"
+        # return f"{self._seller}: {self._amount} for {self._price}"
+        return f"{self._card}: {self._amount} for {self._price} by {self._seller}"
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __lt__(self, other):
+        if not isinstance(other, Offer):
+            raise NotImplementedError()
+        return self.price < other.price
+
+    # def __gt__(self, other):
+    #     if not isinstance(other, Offer):
+    #         raise NotImplementedError()
+    #     return self.price > other.price
 
     @property
-    def seller(self) -> str:
+    def card(self) -> Card:
+        return self._card
+
+    @property
+    def seller(self) -> Seller:
         return self._seller
 
     @property

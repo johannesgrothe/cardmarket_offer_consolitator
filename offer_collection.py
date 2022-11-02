@@ -38,7 +38,7 @@ class OfferCollection:
         return sellers
 
     def sum(self) -> float:
-        return sum([x.price for x in self.offers]) + sum(x.shipping for x in self.sellers)
+        return round(sum([x.price for x in self.offers]) + sum(x.shipping for x in self.sellers), 3)
 
     def add(self, offer: Offer):
         new_offers = copy(self.offers)

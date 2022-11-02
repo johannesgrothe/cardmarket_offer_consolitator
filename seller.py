@@ -17,6 +17,11 @@ class Seller:
             raise NotImplementedError()
         return self.name == other.name and self.shipping == other.shipping
 
+    def __lt__(self, other):
+        if not isinstance(other, Seller):
+            raise NotImplementedError()
+        return str(self) < str(other)
+
     @property
     def name(self) -> str:
         return self._name

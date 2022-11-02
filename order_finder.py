@@ -27,18 +27,14 @@ class OrderFinder:
             return None
         self.checked_offers.append(hash(reference_offers))
 
-        lowest_offer = reference_offers
+        lowest_offer = copy.copy(reference_offers)
 
         for card, offers in self.all_offers.items():
+            buf_offer = reference_offers.remove(card)
             for offer in offers:
-                if offer.seller in reference_offers.sellers:
-
-                    check_offers = copy.copy(reference_offers)
-                    check_offers.remove(card)
-                    check_offers.add(offer)
-                    if check_offers.sum() <= reference_offers.sum():
-                        checked_offer = self._find_lowest(check_offers)
-                        if checked_offer.sum() < lowest_offer.sum():
-                            lowest_offer = checked_offer
-
+                checked_offer = self._find_lowest(buf_offer.add(offer))
+                if not checked_offer:
+                    continue
+                if checked_offer.sum() < lowest_offer.sum():
+                    lowest_offer = checked_offer
         return lowest_offer

@@ -1,25 +1,29 @@
 import argparse
 import logging
 import sys
-from typing import Dict
+import json
 
-from card import Card
+from card_attributes import Language, CardCondition, SellerType, SellerCountry
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
-from offer import Offer
 from order_finder import OrderFinder
-from seller import Seller
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="CLI to get and group offers from cardmarket.com to get the lowest combined price")
     parser.add_argument("--file", "-f", type=str, required=True, help="File to load the card identifiers from")
+    parser.add_argument("--config", "-c", type=str, required=True, help="File to configure the filter parameters")
     parser.add_argument("--verbose", "-v", action="store_true", help="Activates debug output")
     parser.add_argument("--non_interactive", action="store_true",
                         help="Always answers questions posed to the user with 'yes, continue'")
     args = parser.parse_args()
     return args
+
+
+def load_config(path: str) -> dict:
+    with open(path, "r") as file_p:
+        return json.load(file_p)
 
 
 def ask_for_continue(message: str) -> bool:
@@ -53,7 +57,41 @@ def main():
                                 f"and {loader.double_cards} double cards. Continue anyway?"):
             sys.exit(1)
 
-    c_loader = CardmarketLoader()
+    config = load_config(args.config)
+
+    language = config["language"]
+    if language is not None:
+        language = Language(language)
+
+    min_condition = config["min_condition"]
+    if min_condition is not None:
+        min_condition = CardCondition(language)
+
+    seller_type = config["seller_type"]
+    if seller_type is not None:
+        seller_type = SellerType(seller_type)
+
+    seller_country = config["seller_country"]
+    if seller_country is not None:
+        seller_country = SellerCountry(seller_country)
+
+    c_loader = CardmarketLoader(language,
+                                min_condition,
+                                seller_country,
+                                seller_type)
+
+    print()
+    print("Loading Cards with:")
+    if language:
+        print(f"    Language: {language.name}")
+    if min_condition:
+        print(f"    Minimal Condition: {min_condition.name}")
+    if seller_type:
+        print(f"    Seller Type: {seller_type.name}")
+    if seller_country:
+        print(f"    Seller Country: {seller_country.name}")
+    print()
+
     all_offers = {}
     load_errs = 0
     exp_errs = 0
@@ -85,12 +123,14 @@ def main():
     sellers = cheapest_combination.sellers
     sellers.sort()
 
+    print()
     for seller in sellers:
+        print()
         print(f"{seller.name} ({seller.shipping}€ Shipping):")
         offers = [x for x in cheapest_combination.offers if x.seller == seller]
         offers.sort()
         for offer in offers:
-            print(f"    {str(offer.card)} - {offer.price}")
+            print(f"    {str(offer.card)} - {offer.price}€")
         print()
 
     print(f"Total: {cheapest_combination.sum()}€")

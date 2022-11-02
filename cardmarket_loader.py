@@ -9,6 +9,7 @@ from typing import Optional, List, Union
 from card import Card
 from card_attributes import Language, CardCondition, SellerCountry, SellerType
 from offer import Offer
+from seller import Seller
 
 _base_url = "https://www.cardmarket.com/de/Magic/Products/Singles"
 
@@ -128,7 +129,7 @@ class CardmarketLoader:
                 name = name[0]
                 count = int(count[0])
                 price = float(price[0].replace(",", "."))
-                offers.append(Offer(card, name, count, price))
+                offers.append(Offer(card, Seller(name, 1.15), count, price))
             except (IndexError, ValueError) as err:
                 self._logger.error(err.args[0])
         return offers

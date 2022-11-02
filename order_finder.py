@@ -1,4 +1,5 @@
 import copy
+import sys
 from typing import Optional
 
 from card import Card
@@ -17,15 +18,14 @@ class OrderFinder:
 
     def find_lowest_offer(self) -> OfferCollection:
         reference_offers = OfferCollection([y[0] for x, y in self.all_offers.items()])
+        sys.setrecursionlimit(7500)
         return self._find_lowest(reference_offers)
 
     def _find_lowest(self, reference_offers: OfferCollection) -> Optional[OfferCollection]:
-        # print(str(reference_offers))
-        # print(reference_offers.sum())
-
-        if hash(reference_offers) in self.checked_offers:
+        offer_hash = hash(reference_offers)
+        if offer_hash in self.checked_offers:
             return None
-        self.checked_offers.append(hash(reference_offers))
+        self.checked_offers.append(offer_hash)
 
         lowest_offer = copy.copy(reference_offers)
 

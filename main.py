@@ -5,6 +5,7 @@ import sys
 
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
+from loading_indicator import LoadingIndicator
 from order_finder import OrderFinder
 from search_settings import SearchSettings
 from settings_loader import SettingsLoader
@@ -81,8 +82,9 @@ def main():
     for card in cards:
         print(f"[i] Loading offers for {card}...")
         try:
-            card_offers = c_loader.load_offers_for_card(card)
-            card_offers.sort()
+            with LoadingIndicator(size=8):
+                card_offers = c_loader.load_offers_for_card(card)
+                card_offers.sort()
             all_offers[card] = card_offers
             min_price = min([x.price for x in card_offers])
             max_price = max([x.price for x in card_offers])
@@ -100,20 +102,22 @@ def main():
     legal_cards = len(all_offers.keys())
     print(f"[✓] {total_offers} total offers collected for {legal_cards} cards")
 
-    cheapest_combination = OrderFinder(all_offers).find_lowest_offer()
+    print()
+    order_finder = OrderFinder(all_offers)
+    indicator = LoadingIndicator((order_finder.total_checks, order_finder.get_performed_checks), size=8)
+    with indicator:
+        cheapest_combination = order_finder.find_lowest_offer()
 
     sellers = cheapest_combination.sellers
     sellers.sort()
 
-    print()
-    print("Cheapest possible combination found:")
+    print("Cheapest possible combination found:" + " " * 15)
     for seller in sellers:
-        print()
         print(f"{seller.name} ({seller.shipping}€ Shipping):")
         offers = [x for x in cheapest_combination.offers if x.seller == seller]
         offers.sort()
         for offer in offers:
-            print(f"    {str(offer.card)} - {offer.price}€")
+            print(f"    {offer.card.name} - {offer.price}€")
         print()
 
     print(f"Total: {cheapest_combination.sum()}€")

@@ -12,7 +12,7 @@ class SettingsLoader:
             config = json.load(file_p)
 
         for key in ["language", "seller_type", "seller_country"]:
-            if not isinstance(config[key], list):
+            if not isinstance(config[key], list) and config[key] is not None:
                 config[key] = [config[key]]
 
         out = SearchSettings()

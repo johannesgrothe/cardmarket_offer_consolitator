@@ -1,12 +1,12 @@
 import argparse
+import enum
 import logging
 import sys
-import json
 
-from card_attributes import Language, CardCondition, SellerType, SellerCountry
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
 from order_finder import OrderFinder
+from search_settings import SearchSettings
 from settings_loader import SettingsLoader
 
 
@@ -14,7 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="CLI to get and group offers from cardmarket.com to get the lowest combined price")
     parser.add_argument("--file", "-f", type=str, required=True, help="File to load the card identifiers from")
-    parser.add_argument("--config", "-c", type=str, required=True, help="File to configure the filter parameters")
+    parser.add_argument("--config", "-c", type=str, help="File to configure the filter parameters")
     parser.add_argument("--verbose", "-v", action="store_true", help="Activates debug output")
     parser.add_argument("--non_interactive", action="store_true",
                         help="Always answers questions posed to the user with 'yes, continue'")
@@ -38,6 +38,10 @@ def log_error(msg: str):
     print(f"[x] {msg}")
 
 
+def format_list_out(data: list[enum.Enum]):
+    return ', '.join([x.name for x in data])
+
+
 def main():
     args = parse_args()
     if args.verbose:
@@ -53,25 +57,20 @@ def main():
                                 f"and {loader.double_cards} double cards. Continue anyway?"):
             sys.exit(1)
 
-    config = SettingsLoader.load_settings(args.config)
+    config = SettingsLoader.load_settings(args.config) if args.config else SearchSettings()
 
-
-
-    c_loader = CardmarketLoader(language,
-                                min_condition,
-                                seller_country,
-                                seller_type)
+    c_loader = CardmarketLoader(config)
 
     print()
     print("Loading Cards with:")
-    if language:
-        print(f"    Language: {language.name}")
-    if min_condition:
-        print(f"    Minimal Condition: {min_condition.name}")
-    if seller_type:
-        print(f"    Seller Type: {seller_type.name}")
-    if seller_country:
-        print(f"    Seller Country: {seller_country.name}")
+    if config.language:
+        print(f"    Language: {format_list_out(config.language)}")
+    if config.min_condition:
+        print(f"    Minimal Condition: {config.min_condition.name}")
+    if config.seller_type:
+        print(f"    Seller Type: {format_list_out(config.seller_type)}")
+    if config.seller_country:
+        print(f"    Seller Country: {format_list_out(config.seller_country)}")
     print()
 
     all_offers = {}

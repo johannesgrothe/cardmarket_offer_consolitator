@@ -1,6 +1,4 @@
-import copy
 import logging
-import sys
 from typing import Optional
 
 from card import Card
@@ -44,23 +42,48 @@ class OrderFinder:
 
     def find_lowest_offer(self) -> OfferCollection:
         reference_offers = OfferCollection([y[0] for x, y in self.all_offers.items()])
-        sys.setrecursionlimit(7500)
-        return self._find_lowest(reference_offers)
+        return self._find_lowest_recursive2(reference_offers, 0)
 
-    def _find_lowest(self, reference_offers: OfferCollection) -> Optional[OfferCollection]:
+    def _find_lowest_recursive(self, reference_offers: OfferCollection) -> Optional[OfferCollection]:
         offer_hash = hash(reference_offers)
         if offer_hash in self.checked_offers:
             return None
         self.checked_offers.append(offer_hash)
 
-        lowest_offer = copy.copy(reference_offers)
+        lowest_offer = reference_offers
 
-        for card, offers in self.all_offers.items():
+        for card in self.all_offers:
             buf_offer = reference_offers.remove(card)
-            for offer in offers:
-                checked_offer = self._find_lowest(buf_offer.add(offer))
+            for offer in self.all_offers[card]:
+                checked_offer = self._find_lowest_recursive(buf_offer.add(offer))
                 if not checked_offer:
                     continue
                 if checked_offer.sum() < lowest_offer.sum():
                     lowest_offer = checked_offer
+        return lowest_offer
+
+    def _find_lowest_recursive2(self, reference_offers: OfferCollection, card_id: int) -> Optional[OfferCollection]:
+        if card_id >= len(self.all_offers):
+            return None
+
+        offer_hash = hash(reference_offers)
+        if offer_hash in self.checked_offers:
+            return None
+        self.checked_offers.append(offer_hash)
+
+        lowest_offer = reference_offers
+
+        all_cards = [x for x in self.all_offers.keys()]
+
+        card = all_cards[card_id]
+
+        buf_offer = lowest_offer.remove(card)
+
+        for offer in self.all_offers[card]:
+            checked_offer = self._find_lowest_recursive2(buf_offer.add(offer), card_id + 1)
+            if not checked_offer:
+                continue
+
+            if checked_offer.sum() < lowest_offer.sum():
+                lowest_offer = checked_offer
         return lowest_offer

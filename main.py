@@ -44,6 +44,7 @@ def format_list_out(data: list[enum.Enum]):
 
 def main():
     args = parse_args()
+    sys.setrecursionlimit(10 ** 6)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -62,7 +63,7 @@ def main():
     c_loader = CardmarketLoader(config)
 
     print()
-    print("Loading Cards with:")
+    print("Searching for offers with:")
     if config.language:
         print(f"    Language: {format_list_out(config.language)}")
     if config.min_condition:
@@ -105,6 +106,7 @@ def main():
     sellers.sort()
 
     print()
+    print("Cheapest possible combination found:")
     for seller in sellers:
         print()
         print(f"{seller.name} ({seller.shipping}€ Shipping):")

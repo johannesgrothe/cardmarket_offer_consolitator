@@ -7,9 +7,9 @@ import requests
 from typing import Optional, List, Union
 
 from card import Card
-from card_attributes import Language, CardCondition, SellerCountry, SellerType
 from offer import Offer
 from seller import Seller
+from settings_loader import SearchSettings
 
 _base_url = "https://www.cardmarket.com/de/Magic/Products/Singles"
 
@@ -34,23 +34,12 @@ class ExpansionError(Exception):
 
 class CardmarketLoader:
     _logger: logging.Logger
-    _language: Optional[Language]
-    _min_condition: Optional[CardCondition]
-    _seller_country: List[SellerCountry]
-    _seller_type: List[SellerType]
+    _settings: SearchSettings
 
-    def __init__(self, language: Optional[Language] = None, min_condition: Optional[CardCondition] = None,
-                 seller_country: Optional[List[SellerCountry]] = None, seller_type: Optional[List[SellerType]] = None):
+    def __init__(self, config: SearchSettings):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._logger.info(f"Creating CardmarketLoader")
-        if seller_country is None:
-            seller_country = []
-        if seller_type is None:
-            seller_type = []
-        self._language = language
-        self._min_condition = min_condition
-        self._seller_country = seller_country
-        self._seller_type = seller_type
+        self._settings = config
 
     @staticmethod
     def _build_uri(base_uri: str, *args: str) -> str:
@@ -67,14 +56,14 @@ class CardmarketLoader:
 
     def _prepare_params(self) -> dict:
         params = {}
-        if self._language:
-            params["language"] = self._format_param(self._language)
-        if self._min_condition:
-            params["minCondition"] = self._format_param(self._min_condition)
-        if self._seller_type:
-            params["sellerType"] = self._format_param(self._seller_type)
-        if self._seller_country:
-            params["sellerCountry"] = self._format_param(self._seller_country)
+        if self._settings.language:
+            params["language"] = self._format_param(self._settings.language)
+        if self._settings.min_condition:
+            params["minCondition"] = self._format_param(self._settings.min_condition)
+        if self._settings.seller_type:
+            params["sellerType"] = self._format_param(self._settings.seller_type)
+        if self._settings.seller_country:
+            params["sellerCountry"] = self._format_param(self._settings.seller_country)
         return params
 
     @staticmethod

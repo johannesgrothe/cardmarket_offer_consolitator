@@ -7,6 +7,7 @@ from card_attributes import Language, CardCondition, SellerType, SellerCountry
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
 from order_finder import OrderFinder
+from settings_loader import SettingsLoader
 
 
 def parse_args() -> argparse.Namespace:
@@ -19,11 +20,6 @@ def parse_args() -> argparse.Namespace:
                         help="Always answers questions posed to the user with 'yes, continue'")
     args = parser.parse_args()
     return args
-
-
-def load_config(path: str) -> dict:
-    with open(path, "r") as file_p:
-        return json.load(file_p)
 
 
 def ask_for_continue(message: str) -> bool:
@@ -57,23 +53,9 @@ def main():
                                 f"and {loader.double_cards} double cards. Continue anyway?"):
             sys.exit(1)
 
-    config = load_config(args.config)
+    config = SettingsLoader.load_settings(args.config)
 
-    language = config["language"]
-    if language is not None:
-        language = Language(language)
 
-    min_condition = config["min_condition"]
-    if min_condition is not None:
-        min_condition = CardCondition(language)
-
-    seller_type = config["seller_type"]
-    if seller_type is not None:
-        seller_type = SellerType(seller_type)
-
-    seller_country = config["seller_country"]
-    if seller_country is not None:
-        seller_country = SellerCountry(seller_country)
 
     c_loader = CardmarketLoader(language,
                                 min_condition,
@@ -138,18 +120,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # card1 = Card("test1", "testcard1")
-    # card2 = Card("test2", "testcard2")
-    # all_offers = {card1: [Offer(card1, Seller("seller1", 1.15), 3, 0.13),
-    #                       Offer(card1, Seller("seller2", 1.15), 1, 0.20),
-    #                       Offer(card1, Seller("seller3", 1.15), 1, 0.34)],
-    #               card2: [Offer(card2, Seller("seller4", 1.15), 2, 0.02),
-    #                       Offer(card2, Seller("seller2", 1.15), 2, 0.05),
-    #                       Offer(card2, Seller("seller5", 1.15), 4, 0.18),
-    #                       # Offer(card2, Seller("seller1", 1.15), 4, 0.18),
-    #                       Offer(card2, Seller("seller6", 1.15), 1, 0.26)]
-    #               }
-    # print({str(a): [str(x) for x in b] for a, b in all_offers.items()})
-    # lowest = OrderFinder(all_offers).find_lowest_offer()
-    # print(lowest)
-    # print(lowest.sum())

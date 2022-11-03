@@ -1,0 +1,12 @@
+{
+  "language": [
+    1,
+    3
+  ],
+  "seller_type": [
+    0,
+    2
+  ],
+  "seller_country": 7,
+  "min_condition": 5
+}

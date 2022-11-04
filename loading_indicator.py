@@ -10,14 +10,19 @@ class LoadingIndicator:
     _step: int
     _direction: bool
     _size: int
+    _message: str
+    _minimal_display: bool
 
-    def __init__(self, status_info: Optional[Tuple[int, Callable[[], int]]] = None, size: int = 5):
+    def __init__(self, status_info: Optional[Tuple[int, Callable[[], int]]] = None, size: int = 5, message: str = "",
+                 minimal_display: bool = False):
         self._running = False
         self._run_thread = None
         self._status_info = status_info
         self._step = 0
         self._direction = True
         self._size = size
+        self._message = " " + message.strip()
+        self._minimal_display = minimal_display
 
     def __del__(self):
         self.stop()
@@ -39,8 +44,7 @@ class LoadingIndicator:
                 status_part = f"| {current}/{total} | {percent}%"
             first_space = ' ' * self._step
             second_space = ' ' * (self._size - self._step)
-            print(f"[{first_space}o{second_space}{status_part}]{' ' * 15}",
-                  end="\r")
+            print(f"[{first_space}o{second_space}{status_part}]{self._message}{' ' * 15}", end="\r")
             if self._direction:
                 self._step += 1
                 if self._step == self._size:

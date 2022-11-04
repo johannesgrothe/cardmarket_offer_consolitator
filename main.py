@@ -5,10 +5,13 @@ import sys
 
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
-from loading_indicator import LoadingIndicator
 from order_finder import OrderFinder
 from search_settings import SearchSettings
 from settings_loader import SettingsLoader
+from utils.animated_loading_indicator import AnimatedLoadingIndicator
+from utils.updated_loading_indicator import UpdatedLoadingIndicator
+
+_indicator_size = 4
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,37 +61,40 @@ def main():
         if not ask_for_continue(f"[!] The file contained {loader.illegal_identifiers} illegal identifiers "
                                 f"and {loader.double_cards} double cards. Continue anyway?"):
             sys.exit(1)
+    print()
 
-    config = SettingsLoader.load_settings(args.config) if args.config else SearchSettings()
+    if not args.config:
+        config = SearchSettings()
+    else:
+        print(f"[i] Loading Search Parameters from {args.config}")
+        config = SettingsLoader.load_settings(args.config)
+        print(f"[✓] Config with {len(config)} Options loaded. Searching for offers with:")
+        if config.language:
+            print(f"    Language: {format_list_out(config.language)}")
+        if config.min_condition:
+            print(f"    Minimal Condition: {config.min_condition.name}")
+        if config.seller_type:
+            print(f"    Seller Type: {format_list_out(config.seller_type)}")
+        if config.seller_country:
+            print(f"    Seller Country: {format_list_out(config.seller_country)}")
+        print()
 
     c_loader = CardmarketLoader(config)
-
-    print()
-    print("Searching for offers with:")
-    if config.language:
-        print(f"    Language: {format_list_out(config.language)}")
-    if config.min_condition:
-        print(f"    Minimal Condition: {config.min_condition.name}")
-    if config.seller_type:
-        print(f"    Seller Type: {format_list_out(config.seller_type)}")
-    if config.seller_country:
-        print(f"    Seller Country: {format_list_out(config.seller_country)}")
-    print()
 
     all_offers = {}
     load_errs = 0
     exp_errs = 0
     product_errs = 0
     for card in cards:
-        print(f"[i] Loading offers for {card}...")
         try:
-            with LoadingIndicator(size=8):
+            with AnimatedLoadingIndicator(size=_indicator_size, message=f"Loading offers for {card}..."):
                 card_offers = c_loader.load_offers_for_card(card)
                 card_offers.sort()
             all_offers[card] = card_offers
             min_price = min([x.price for x in card_offers])
             max_price = max([x.price for x in card_offers])
-            print(f"[✓] {len(card_offers)} offers fetched between {min_price}€ and {max_price}€")
+            print(f"[✓] {len(card_offers)} offers fetched between {min_price}€ and {max_price}€ for {card.name}",
+                  " " * (10 + len(str(card.expansion))))
         except DataLoadError as err:
             print(f"[x] Data could not be loaded, server responded with code {err.code}")
             load_errs += 1
@@ -100,24 +106,26 @@ def main():
             product_errs += 1
     total_offers = sum([len(x) for y, x in all_offers.items()])
     legal_cards = len(all_offers.keys())
-    print(f"[✓] {total_offers} total offers collected for {legal_cards} cards")
+    print(f"[i] {total_offers} total offers collected for {legal_cards} cards")
 
     print()
     order_finder = OrderFinder(all_offers)
-    indicator = LoadingIndicator((order_finder.total_checks, order_finder.get_performed_checks), size=8)
+    indicator = UpdatedLoadingIndicator(order_finder.total_checks, order_finder.get_performed_checks, precision=1,
+                                        message="Searching for lowest combination of sellers...")
     with indicator:
         cheapest_combination = order_finder.find_lowest_offer()
 
     sellers = cheapest_combination.sellers
     sellers.sort()
 
-    print("Cheapest possible combination found:" + " " * 15)
+    print("Cheapest possible combination found:" + " " * 60)
     for seller in sellers:
-        print(f"{seller.name} ({seller.shipping}€ Shipping):")
         offers = [x for x in cheapest_combination.offers if x.seller == seller]
+        total = seller.shipping + sum([x.price for x in offers])
+        print(f"{seller.name} ({seller.shipping}€ Shipping, {total} total):")
         offers.sort()
         for offer in offers:
-            print(f"    {offer.card.name} - {offer.price}€")
+            print(f"    {offer.card.name} - {offer.price}€ ({offer.amount} available)")
         print()
 
     print(f"Total: {cheapest_combination.sum()}€")

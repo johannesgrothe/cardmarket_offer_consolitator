@@ -42,6 +42,13 @@ def log_error(msg: str):
     print(f"[x] {msg}")
 
 
+def format_price(price: float):
+    out = str(round(price, 2))
+    if len(out.split(".")[1]) < 2:
+        out += "0"
+    return out
+
+
 def format_list_out(data: list[enum.Enum]):
     return ', '.join([x.name for x in data])
 
@@ -53,21 +60,12 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.CRITICAL)
-    print(f"[i] Loading Cards from {args.file}")
-    loader = FileLoader(args.file, log_error)
-    cards = loader.cards
-    print(f"[✓] {len(cards)} Cards loaded from File")
-    if loader.double_cards or loader.illegal_identifiers and not args.non_interactive:
-        if not ask_for_continue(f"[!] The file contained {loader.illegal_identifiers} illegal identifiers "
-                                f"and {loader.double_cards} double cards. Continue anyway?"):
-            sys.exit(1)
-    print()
 
     if not args.config:
         config = SearchSettings()
     else:
-        print(f"[i] Loading Search Parameters from {args.config}")
-        config = SettingsLoader.load_settings(args.config)
+        with AnimatedLoadingIndicator(size=3, message=f"Loading Search Parameters from {args.config}"):
+            config = SettingsLoader.load_settings(args.config)
         print(f"[✓] Config with {len(config)} Options loaded. Searching for offers with:")
         if config.language:
             print(f"    Language: {format_list_out(config.language)}")
@@ -78,6 +76,16 @@ def main():
         if config.seller_country:
             print(f"    Seller Country: {format_list_out(config.seller_country)}")
         print()
+
+    with AnimatedLoadingIndicator(size=3, message=f"Loading Cards from {args.file}"):
+        loader = FileLoader(args.file, log_error)
+        cards = loader.cards
+    print(f"[✓] {len(cards)} Cards loaded from File")
+    if loader.double_cards or loader.illegal_identifiers and not args.non_interactive:
+        if not ask_for_continue(f"[!] The file contained {loader.illegal_identifiers} illegal identifiers "
+                                f"and {loader.double_cards} double cards. Continue anyway?"):
+            sys.exit(1)
+    print()
 
     c_loader = CardmarketLoader(config)
 
@@ -93,8 +101,8 @@ def main():
             all_offers[card] = card_offers
             min_price = min([x.price for x in card_offers])
             max_price = max([x.price for x in card_offers])
-            print(f"[✓] {len(card_offers)} offers fetched between {min_price}€ and {max_price}€ for {card.name}",
-                  " " * (10 + len(str(card.expansion))))
+            print(f"[✓] {len(card_offers)} offers fetched between {format_price(min_price)}€ and "
+                  f"{format_price(max_price)}€ for {card.name}", " " * (10 + len(str(card.expansion))))
         except DataLoadError as err:
             print(f"[x] Data could not be loaded, server responded with code {err.code}")
             load_errs += 1
@@ -121,15 +129,18 @@ def main():
     print("Cheapest possible combination found:" + " " * 60)
     for seller in sellers:
         offers = [x for x in cheapest_combination.offers if x.seller == seller]
-        total = seller.shipping + sum([x.price for x in offers])
-        print(f"{seller.name} ({seller.shipping}€ Shipping, {total} total):")
+        total = format_price(seller.shipping + sum([x.price for x in offers]))
+        print(f"{seller.name} ({format_price(seller.shipping)}€ Shipping, {total} total):")
         offers.sort()
         for offer in offers:
-            print(f"    {offer.card.name} - {offer.price}€ ({offer.amount} available)")
+            print(f"    {offer.card.name} - {format_price(offer.price)}€ ({offer.amount} available)")
         print()
 
-    print(f"Total: {cheapest_combination.sum()}€")
+    print(f"Total: {format_price(cheapest_combination.sum())}€")
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("[i] Script terminated by user.")

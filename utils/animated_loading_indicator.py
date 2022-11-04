@@ -1,5 +1,3 @@
-from typing import Any
-
 from utils.loading_indicator import LoadingIndicator
 
 
@@ -9,8 +7,8 @@ class AnimatedLoadingIndicator(LoadingIndicator):
     _size: int
     _message: str
 
-    def __init__(self, size: int = 5, message: str = "", *args: Any):
-        super().__init__(message, *args)
+    def __init__(self, size: int = 5, message: str = ""):
+        super().__init__(message)
         self._step = 0
         self._direction = True
         self._size = size

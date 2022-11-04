@@ -1,20 +1,18 @@
 import threading
 import time
 from abc import abstractmethod, ABCMeta
-from typing import Optional, Any
+from typing import Optional
 
 
 class LoadingIndicator(metaclass=ABCMeta):
     _running: bool
     _run_thread: Optional[threading.Thread]
     _message: str
-    _args: Any
 
-    def __init__(self, message: str, *args: Any):
+    def __init__(self, message: str):
         self._running = False
         self._run_thread = None
         self._message = message
-        self._args = args
 
     def __del__(self):
         self.stop()
@@ -27,7 +25,7 @@ class LoadingIndicator(metaclass=ABCMeta):
         self.stop()
 
     def _format_message(self) -> str:
-        return self._message.format(*self._args)
+        return self._message
 
     def _thread_runner(self):
         while self._running:
@@ -53,3 +51,4 @@ class LoadingIndicator(metaclass=ABCMeta):
     def stop(self):
         if self._running:
             self._stop_thread()
+        print(" " * 90, end="\r")

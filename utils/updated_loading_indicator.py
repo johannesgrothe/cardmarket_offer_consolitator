@@ -9,9 +9,8 @@ class UpdatedLoadingIndicator(LoadingIndicator):
     _precision: int
     _message: str
 
-    def __init__(self, max_value: int, current_value: Callable[[], int], precision: int = 0, message: str = "",
-                 *args: Any):
-        super().__init__(message, *args)
+    def __init__(self, max_value: int, current_value: Callable[[], int], precision: int = 0, message: str = ""):
+        super().__init__(message)
         self._max_value = max_value
         self._current_value = current_value
         self._precision = precision

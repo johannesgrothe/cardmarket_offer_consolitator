@@ -1,13 +1,15 @@
 class Card:
     _expansion: str
     _name: str
+    _amount: int
 
-    def __init__(self, expansion: str, name: str):
+    def __init__(self, expansion: str, name: str, amount: int):
         self._expansion = expansion
         self._name = name
+        self._amount = amount
 
     def __str__(self):
-        return f"{self._expansion} // {self._name}"
+        return f"{self._expansion} // {self._name} x {self.amount}"
 
     def __eq__(self, other):
         if not isinstance(other, Card):
@@ -27,3 +29,7 @@ class Card:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def amount(self) -> int:
+        return self._amount

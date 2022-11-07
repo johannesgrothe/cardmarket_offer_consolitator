@@ -55,7 +55,6 @@ def format_list_out(data: list[enum.Enum]):
 
 def main():
     args = parse_args()
-    sys.setrecursionlimit(10 ** 6)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:

@@ -5,12 +5,13 @@ from typing import Optional
 from card import Card
 from offer import Offer
 from offer_collection import OfferCollection
+from offer_set import OfferSet
 
 
 class OrderFinder:
     _logger: logging.Logger
     _lock: threading.Lock
-    all_offers: dict[Card, list[Offer]]
+    all_offers: dict[Card, list[OfferSet]]
     _all_cards: list[Card]
     _performed_checks: int
     _total_checks: int
@@ -18,7 +19,8 @@ class OrderFinder:
     def __init__(self, all_offers: dict[Card, list[Offer]]):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._lock = threading.Lock()
-        self.all_offers = self._remove_single_sellers(all_offers)
+        buf_offers = self._remove_single_sellers(all_offers)
+        self.all_offers = self._transform_to_sets(buf_offers)
         self._all_cards = [x for x in self.all_offers.keys()]
         self._performed_checks = 0
 
@@ -54,12 +56,18 @@ class OrderFinder:
             offers.sort()
             new_offers = [x for x in offers if x.seller in double_sellers]
             cheapest_offer = offers[0]
-            offers.sort()
             if cheapest_offer not in new_offers:
                 new_offers.append(cheapest_offer)
             self._logger.info(f"Reduced offer-count for '{card.name}' from {len(offers)} to {len(new_offers)}")
             out_data[card] = new_offers
 
+        return out_data
+
+    def _transform_to_sets(self, in_data: dict[Card, list[Offer]]) -> dict[Card, list[OfferSet]]:
+        out_data: dict[Card, list[OfferSet]] = {}
+        for card, offers in in_data.items():
+            out_data[card] = [OfferSet([x]) for x in offers]
+            self._logger.info(f"Created {len(out_data[card])} offer-sets for '{card.name}'")
         return out_data
 
     def find_lowest_offer(self) -> OfferCollection:

@@ -127,7 +127,11 @@ def main():
 
     print("Cheapest possible combination found:" + " " * 60)
     for seller in sellers:
-        offers = [x for x in cheapest_combination.offers if x.seller == seller]
+        offers = []
+        for offer_set in cheapest_combination.offers:
+            for offer in offer_set.offers:
+                if offer.seller == seller:
+                    offers.append(offer)
         total = format_price(seller.shipping + sum([x.price for x in offers]))
         print(f"{seller.name} ({format_price(seller.shipping)}€ Shipping, {total} total):")
         offers.sort()

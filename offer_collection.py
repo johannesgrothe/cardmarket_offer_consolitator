@@ -2,15 +2,18 @@ from copy import copy
 
 from card import Card
 from offer import Offer
+from offer_set import OfferSet
 from seller import Seller
 
 
 class OfferCollection:
-    offers: list[Offer]
+    offers: list[OfferSet]
+    _sum: float
 
-    def __init__(self, offers: list[Offer]):
+    def __init__(self, offers: list[OfferSet]):
         self.offers = offers
         self.offers.sort()
+        self._sum = round(sum([x.price for x in self.offers]) + sum(x.shipping for x in self.sellers), 3)
 
     def __str__(self):
         return str([str(x) for x in self.offers])
@@ -32,15 +35,15 @@ class OfferCollection:
     def sellers(self) -> list[Seller]:
         sellers = []
         for offer in self.offers:
-            seller = offer.seller
-            if seller not in sellers:
-                sellers.append(seller)
+            for seller in offer.sellers:
+                if seller not in sellers:
+                    sellers.append(seller)
         return sellers
 
     def sum(self) -> float:
-        return round(sum([x.price for x in self.offers]) + sum(x.shipping for x in self.sellers), 3)
+        return self._sum
 
-    def add(self, offer: Offer):
+    def add(self, offer: OfferSet):
         new_offers = copy(self.offers)
         new_offers.append(offer)
         new_collection = OfferCollection(new_offers)

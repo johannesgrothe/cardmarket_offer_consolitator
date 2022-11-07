@@ -27,11 +27,6 @@ class Offer:
             raise NotImplementedError()
         return self.price < other.price
 
-    # def __gt__(self, other):
-    #     if not isinstance(other, Offer):
-    #         raise NotImplementedError()
-    #     return self.price > other.price
-
     @property
     def card(self) -> Card:
         return self._card

@@ -25,8 +25,9 @@ class OrderFinder:
         self._performed_checks = 0
 
         self._total_checks = 1
-        for _, offers in self.all_offers.items():
-            self._total_checks *= len(offers)
+        for _, offer_sets in self.all_offers.items():
+            self._total_checks *= len(offer_sets)
+        self._logger.info(f"Created OrderFinder for {len(self.all_offers)} cards")
 
     @property
     def total_checks(self) -> int:
@@ -63,14 +64,36 @@ class OrderFinder:
 
         return out_data
 
+    def _create_sets(self, offers: list[Offer]) -> list[OfferSet]:
+        buf_data = []
+
+        for offer in offers:
+            buf_data += self._create_set(OfferSet([offer]), offers)
+
+        out_data = []
+        for x in buf_data:
+            if x not in out_data:
+                out_data.append(x)
+        return out_data
+
+    def _create_set(self, elem: OfferSet, offers: list[Offer]) -> list[OfferSet]:
+        if elem.cards_available >= elem.card.amount:
+            return [elem]
+        buf_data = []
+        for offer in offers:
+            if offer not in elem.offers:
+                buf_data += self._create_set(OfferSet(elem.offers + [offer]), offers)
+        return buf_data
+
     def _transform_to_sets(self, in_data: dict[Card, list[Offer]]) -> dict[Card, list[OfferSet]]:
         out_data: dict[Card, list[OfferSet]] = {}
         for card, offers in in_data.items():
-            out_data[card] = [OfferSet([x]) for x in offers]
+            out_data[card] = self._create_sets(offers)
             self._logger.info(f"Created {len(out_data[card])} offer-sets for '{card.name}'")
         return out_data
 
     def find_lowest_offer(self) -> OfferCollection:
+        self._logger.info(f"Searching for lowest combination in {self.total_checks} total combinations")
         reference_offers = OfferCollection([y[0] for x, y in self.all_offers.items()])
         return self._find_lowest(reference_offers, 0)
 

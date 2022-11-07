@@ -2,9 +2,11 @@ import argparse
 import enum
 import logging
 import sys
+from typing import Tuple
 
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
+from offer import Offer
 from order_finder import OrderFinder
 from search_settings import SearchSettings
 from settings_loader import SettingsLoader
@@ -24,6 +26,17 @@ def parse_args() -> argparse.Namespace:
                         help="Always answers questions posed to the user with 'yes, continue'")
     args = parser.parse_args()
     return args
+
+
+def format_amount(number: int) -> str:
+    if number > 1000000000000:
+        return f"{round(number / 100000000000, 2)} trillion"
+    if number > 1000000000:
+        return f"{round(number / 100000000, 2)} billion"
+    if number > 1000000:
+        return f"{round(number / 100000, 2)} million"
+    else:
+        return str(number)
 
 
 def ask_for_continue(message: str) -> bool:
@@ -125,18 +138,20 @@ def main():
     sellers = cheapest_combination.sellers
     sellers.sort()
 
+    print(f"[i] {format_amount(order_finder.total_checks)} combinations have been checked.")
+    print()
     print("Cheapest possible combination found:" + " " * 60)
     for seller in sellers:
-        offers = []
+        offers: list[Tuple[Offer, int]] = []
         for offer_set in cheapest_combination.offers:
             for offer in offer_set.offers:
                 if offer.seller == seller:
-                    offers.append(offer)
-        total = format_price(seller.shipping + sum([x.price for x in offers]))
+                    offers.append((offer, offer_set.get_amount_for_offer(offer)))
+        total = format_price(seller.shipping + sum([x.price for x, _ in offers]))
         print(f"{seller.name} ({format_price(seller.shipping)}€ Shipping, {total} total):")
         offers.sort()
-        for offer in offers:
-            print(f"    {offer.card.name} - {format_price(offer.price)}€ ({offer.amount} available)")
+        for offer, amount in offers:
+            print(f"    {offer.card.name} - {format_price(offer.price)}€ x {amount} ({offer.amount} available)")
         print()
 
     print(f"Total: {format_price(cheapest_combination.sum())}€")

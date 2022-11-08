@@ -11,23 +11,34 @@ from offer_set import OfferSet
 class OrderFinder:
     _logger: logging.Logger
     _lock: threading.Lock
-    all_offers: dict[Card, list[OfferSet]]
+    # all_offers: dict[Card, list[OfferSet]]
+    _offer_sets: list[list[OfferSet]]
     _all_cards: list[Card]
     _performed_checks: int
     _total_checks: int
+
+    _lock: threading.Lock
+    _returned_offer_collections: list[OfferCollection]
 
     def __init__(self, all_offers: dict[Card, list[Offer]]):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._lock = threading.Lock()
         buf_offers = self._remove_single_sellers(all_offers)
-        self.all_offers = self._transform_to_sets(buf_offers)
-        self._all_cards = [x for x in self.all_offers.keys()]
+        all_offers = self._transform_to_sets(buf_offers)
+        self._all_cards = [x for x in all_offers.keys()]
         self._performed_checks = 0
 
         self._total_checks = 1
-        for _, offer_sets in self.all_offers.items():
+        for _, offer_sets in all_offers.items():
             self._total_checks *= len(offer_sets)
-        self._logger.info(f"Created OrderFinder for {len(self.all_offers)} cards")
+        self._logger.info(f"Created OrderFinder for {len(all_offers)} cards")
+
+        self._offer_sets = [y for x, y in all_offers.items()]
+        self._offer_sets.sort(key=len)
+        self._offer_sets.reverse()
+
+        self._lock = threading.Lock()
+        self._lowest_offer = OfferCollection([x[0] for x in self._offer_sets])
 
     @property
     def total_checks(self) -> int:
@@ -92,19 +103,40 @@ class OrderFinder:
             self._logger.info(f"Created {len(out_data[card])} offer-sets for '{card.name}'")
         return out_data
 
-    def find_lowest_offer(self) -> OfferCollection:
+    def find_lowest_offer(self, use_threads: bool = True) -> OfferCollection:
         self._logger.info(f"Searching for lowest combination in {self.total_checks} total combinations")
-        reference_offers = OfferCollection([y[0] for x, y in self.all_offers.items()])
-        return self._find_lowest(reference_offers, 0)
 
-    def _find_lowest(self, reference_offers: OfferCollection, card_id: int) -> Optional[OfferCollection]:
+        if not use_threads:
+            return self._find_lowest(self._lowest_offer, 0)
+
+        threads = []
+        card = self._all_cards[0]
+        buf_offer = self._lowest_offer.remove(card)
+        for i, offer_set in enumerate(self._offer_sets[0]):
+            thread = threading.Thread(target=self._find_lowest_thread,
+                                      args=[buf_offer.add(offer_set), 1],
+                                      name=f"Thread_{i}",
+                                      daemon=True)
+            threads.append(thread)
+            thread.start()
+
+        with self._lock:
+            return self._lowest_offer
+
+    def _find_lowest_thread(self, reference_offers: OfferCollection, card_id: int) -> None:
+        checked_offer = self._find_lowest(reference_offers, card_id)
+        with self._lock:
+            if checked_offer.sum() < self._lowest_offer.sum():
+                self._lowest_offer = checked_offer
+
+    def _find_lowest(self, reference_offers: OfferCollection, card_id: int) -> OfferCollection:
         lowest_offer = reference_offers
         card = self._all_cards[card_id]
         buf_offer = lowest_offer.remove(card)
 
-        for offer in self.all_offers[card]:
-            if card_id < len(self.all_offers) - 1:
-                checked_offer = self._find_lowest(buf_offer.add(offer), card_id + 1)  # TODO: add multithreading
+        for offer in self._offer_sets[card_id]:
+            if card_id < len(self._offer_sets) - 1:
+                checked_offer = self._find_lowest(buf_offer.add(offer), card_id + 1)
             else:
                 checked_offer = buf_offer.add(offer)
                 self._increment_check()

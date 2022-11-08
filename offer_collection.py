@@ -1,7 +1,6 @@
 from copy import copy
 
 from card import Card
-from offer import Offer
 from offer_set import OfferSet
 from seller import Seller
 

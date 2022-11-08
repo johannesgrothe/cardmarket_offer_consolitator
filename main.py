@@ -24,6 +24,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--verbose", "-v", action="store_true", help="Activates debug output")
     parser.add_argument("--non_interactive", action="store_true",
                         help="Always answers questions posed to the user with 'yes, continue'")
+    parser.add_argument("--no_threads", action="store_true",
+                        help="Algorithm does not use threads")
     args = parser.parse_args()
     return args
 
@@ -92,7 +94,7 @@ def main():
     with AnimatedLoadingIndicator(size=3, message=f"Loading Cards from {args.file}"):
         loader = FileLoader(args.file, log_error)
         cards = loader.cards
-    print(f"[✓] {len(cards)} Cards loaded from File")
+    print(f"[✓] {len(cards)} different Cards loaded from File, {sum([x.amount for x in cards])} in total.")
     if loader.double_cards or loader.illegal_identifiers and not args.non_interactive:
         if not ask_for_continue(f"[!] The file contained {loader.illegal_identifiers} illegal identifiers "
                                 f"and {loader.double_cards} double cards. Continue anyway?"):
@@ -133,7 +135,8 @@ def main():
     indicator = UpdatedLoadingIndicator(order_finder.total_checks, order_finder.get_performed_checks, precision=1,
                                         message="Searching for lowest combination of sellers...")
     with indicator:
-        cheapest_combination = order_finder.find_lowest_offer()
+        use_threads = False if args.no_threads else True
+        cheapest_combination = order_finder.find_lowest_offer(use_threads)
 
     sellers = cheapest_combination.sellers
     sellers.sort()

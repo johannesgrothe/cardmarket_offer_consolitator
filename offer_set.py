@@ -44,7 +44,7 @@ class OfferSet:
         for offer in self._offers:
             local_amount = 0
             for i in range(offer.amount):
-                if added_cards > self.card.amount:
+                if added_cards >= self.card.amount:
                     break
                 local_amount += 1
                 added_cards += 1

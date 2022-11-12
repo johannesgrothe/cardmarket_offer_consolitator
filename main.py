@@ -143,7 +143,7 @@ def main():
     print("Cheapest possible combination found:" + " " * 60)
     for seller in sellers:
         offers: list[Tuple[Offer, int]] = []
-        for offer_set in cheapest_combination.offers:
+        for offer_set in cheapest_combination.offer_sets:
             for offer in offer_set.offers:
                 if offer.seller == seller:
                     offers.append((offer, offer_set.get_amount_for_offer(offer)))

@@ -2,7 +2,7 @@ from card import Card
 from offer import Offer
 from seller import Seller
 
-_card = Card("dummy_expansion", "dummy_card")
+_card = Card("dummy_expansion", "dummy_card", 1)
 _seller = Seller("dummy_seller", 1.15)
 _amount = 13
 _price = 22.68

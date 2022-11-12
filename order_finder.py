@@ -5,6 +5,7 @@ from card import Card
 from offer import Offer
 from offer_collection import OfferCollection
 from offer_set import OfferSet
+from set_creator import OfferSetCreator
 
 
 class OrderFinder:
@@ -74,31 +75,10 @@ class OrderFinder:
 
         return out_data
 
-    def _create_set(self, elem: OfferSet, offers: list[Offer]) -> list[OfferSet]:
-        if elem.cards_available >= elem.card.amount:
-            return [elem]
-        buf_data = []
-        for offer in offers:
-            if offer not in elem.offers:
-                buf_data += self._create_set(OfferSet(elem.offers + [offer]), offers)
-        return buf_data
-
-    def _create_sets(self, offers: list[Offer]) -> list[OfferSet]:
-        buf_data = []
-
-        for offer in offers:
-            buf_data += self._create_set(OfferSet([offer]), offers)
-
-        out_data = []
-        for x in buf_data:
-            if x not in out_data:
-                out_data.append(x)
-        return out_data
-
     def _transform_to_sets(self, in_data: dict[Card, list[Offer]]) -> dict[Card, list[OfferSet]]:
         out_data: dict[Card, list[OfferSet]] = {}
         for card, offers in in_data.items():
-            out_data[card] = self._create_sets(offers)
+            out_data[card] = OfferSetCreator(offers).sets
             self._logger.info(f"Created {len(out_data[card])} offer-sets for '{card.name}'")
         return out_data
 

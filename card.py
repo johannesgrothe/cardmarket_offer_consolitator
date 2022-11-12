@@ -3,7 +3,7 @@ class Card:
     _name: str
     _amount: int
 
-    def __init__(self, expansion: str, name: str, amount: int):
+    def __init__(self, expansion: str, name: str, amount: int = 1):
         self._expansion = expansion
         self._name = name
         self._amount = amount

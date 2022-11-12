@@ -27,6 +27,14 @@ class Offer:
             raise NotImplementedError()
         return self.price < other.price
 
+    def __eq__(self, other):
+        if not isinstance(other, Offer):
+            raise NotImplementedError()
+        return (self.price == other.price and
+                self.card == other.card and
+                self.amount == other.amount and
+                self.seller == other.seller)
+
     @property
     def card(self) -> Card:
         return self._card

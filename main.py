@@ -29,14 +29,27 @@ def parse_args() -> argparse.Namespace:
 
 
 def format_amount(number: int) -> str:
-    if number > 1000000000000:
-        return f"{round(number / 100000000000, 2)} trillion"
-    if number > 1000000000:
-        return f"{round(number / 100000000, 2)} billion"
-    if number > 1000000:
-        return f"{round(number / 100000, 2)} million"
+    number_names = {
+        3: "thousand",
+        6: "million",
+        9: "billion",
+        12: "trillion",
+        15: "quadrillion",
+        18: "quintillion",
+        21: "sextillion",
+        24: "septillion",
+        27: "octillion"
+    }
+
+    base_nr = ((len(str(number)) - 1) // 3) * 3
+    buf_number = number // (10 ** base_nr)
+    type_str = number_names.get(base_nr)
+    if type_str is None:
+        type_str = ""
     else:
-        return str(number)
+        type_str = " " + type_str
+
+    return f"{buf_number}{type_str}"
 
 
 def ask_for_continue(message: str) -> bool:

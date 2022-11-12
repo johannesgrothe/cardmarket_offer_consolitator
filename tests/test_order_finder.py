@@ -28,8 +28,5 @@ def f_all_offers(f_all_cards):
 
 def test_order_finder(f_all_offers):
     finder = OrderFinder(f_all_offers)
-    result = finder.find_lowest_offer(use_threads=False)
-
-    finder_threads = OrderFinder(f_all_offers)
-    result_threads = finder_threads.find_lowest_offer(use_threads=True)
-    assert result == result_threads
+    result = finder.find_lowest_offer()
+    assert result

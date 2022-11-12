@@ -3,6 +3,7 @@ import pytest
 from card import Card
 from offer import Offer
 from offer_collection import OfferCollection
+from offer_set import OfferSet
 from seller import Seller
 
 seller1 = Seller("seller1", 1.40)
@@ -17,7 +18,8 @@ def f_offers():
               Offer(Card(f"expansion3", f"card3"), seller3, 1, 0.3),
               Offer(Card(f"expansion00", f"card00a"), seller2, 1, 0.02),
               Offer(Card(f"expansion00", f"card00b"), seller2, 1, 1.05)]
-    return OfferCollection(offers)
+    offer_sets = [OfferSet([x]) for x in offers]
+    return OfferCollection(offer_sets)
 
 
 def test_offer_collection_sum(f_offers):

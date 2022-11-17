@@ -15,7 +15,7 @@ class OfferCollection:
         self._sum = round(sum([x.price for x in self.offer_sets]) + sum(x.shipping for x in self.sellers), 2)
 
     def __str__(self):
-        return str([str(x) for x in self.offer_sets])
+        return str([str(x) for x in self.offer_sets]) + f" for a total of {self.sum()}€"
 
     def __eq__(self, other):
         if not isinstance(other, OfferCollection):

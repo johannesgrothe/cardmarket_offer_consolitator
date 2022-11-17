@@ -13,11 +13,11 @@ seller3 = Seller("seller3", 1.15)
 
 @pytest.fixture
 def f_offers():
-    offers = [Offer(Card(f"expansion1", f"card1"), seller1, 1, 0.1),
-              Offer(Card(f"expansion2", f"card2"), seller2, 1, 0.2),
-              Offer(Card(f"expansion3", f"card3"), seller3, 1, 0.3),
-              Offer(Card(f"expansion00", f"card00a"), seller2, 1, 0.02),
-              Offer(Card(f"expansion00", f"card00b"), seller2, 1, 1.05)]
+    offers = [Offer(Card("expansion1", f"card1"), seller1, 1, 0.1, "expansion1"),
+              Offer(Card("expansion2", f"card2"), seller2, 1, 0.2, "expansion2"),
+              Offer(Card("expansion3", f"card3"), seller3, 1, 0.3, "expansion3"),
+              Offer(Card("expansion00", f"card00a"), seller2, 1, 0.02, "expansion00"),
+              Offer(Card("expansion00", f"card00b"), seller2, 1, 1.05, "expansion00")]
     offer_sets = [OfferSet([x]) for x in offers]
     return OfferCollection(offer_sets)
 

@@ -17,28 +17,34 @@ class OrderFinder:
     _performed_checks: int
     _total_checks: int
 
+    _total_threads: int
+    _threads_started: int
+
     _lock: threading.Lock
     _returned_offer_collections: list[OfferCollection]
 
     def __init__(self, all_offers: dict[Card, list[Offer]]):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._lock = threading.Lock()
-        buf_offers = self._remove_single_sellers(all_offers)
-        all_offers = self._transform_to_sets(buf_offers)
-        self._all_cards = [x for x in all_offers.keys()]
+        buf_offers = all_offers
+        # buf_offers = self._remove_single_sellers(all_offers)
+        buf_offers = self._remove_expensive_offers(buf_offers)
+        buf_offers = self._transform_to_sets(buf_offers)
+        self._all_cards = [x for x in buf_offers.keys()]
         self._performed_checks = 0
 
         self._total_checks = 1
         for _, offer_sets in all_offers.items():
             self._total_checks *= len(offer_sets)
-        self._logger.info(f"Created OrderFinder for {len(all_offers)} cards")
+        self._logger.info(f"Created OrderFinder for {len(buf_offers)} cards")
 
-        self._offer_sets = [y for x, y in all_offers.items()]
+        self._offer_sets = [y for x, y in buf_offers.items()]
         self._offer_sets.sort(key=len)
         self._offer_sets.reverse()
 
         self._lock = threading.Lock()
-        self._lowest_offer = OfferCollection([x[0] for x in self._offer_sets])
+        reference_sets = [x[0] for x in self._offer_sets]
+        self._lowest_offer = OfferCollection(reference_sets)
 
     @property
     def total_checks(self) -> int:
@@ -65,14 +71,30 @@ class OrderFinder:
         out_data = {}
 
         for card, offers in in_data.items():
-            offers.sort()
             new_offers = [x for x in offers if x.seller in double_sellers]
+            new_offers.sort(key=lambda x: x.price)
             cheapest_offer = offers[0]
             if cheapest_offer not in new_offers:
                 new_offers.append(cheapest_offer)
             self._logger.info(f"Reduced offer-count for '{card.name}' from {len(offers)} to {len(new_offers)}")
             out_data[card] = new_offers
 
+        return out_data
+
+    def _remove_expensive_offers(self, in_data: dict[Card, list[Offer]]) -> dict[Card, list[Offer]]:
+        out_data = {}
+        for card, offers in in_data.items():
+            if card.amount > 1:
+                out_data[card] = offers
+                continue
+            offers.sort(key=lambda x: x.price)
+            base_price = offers[0].price + offers[0].seller.shipping
+            new_offers = []
+            for offer in offers:
+                if offer.price <= base_price:
+                    new_offers.append(offer)
+            out_data[card] = new_offers
+            self._logger.info(f"Reduced amount of offers for {card.name} from {len(offers)} to {len(new_offers)}")
         return out_data
 
     def _transform_to_sets(self, in_data: dict[Card, list[Offer]]) -> dict[Card, list[OfferSet]]:
@@ -89,17 +111,24 @@ class OrderFinder:
         card = self._all_cards[0]
         buf_offer = self._lowest_offer.remove(card)
         for i, offer_set in enumerate(self._offer_sets[0]):
+            t_name = f"Thread_{i}"
             thread = threading.Thread(target=self._find_lowest,
                                       args=[buf_offer.add(offer_set), 1],
-                                      name=f"Thread_{i}",
+                                      name=t_name,
                                       daemon=True)
             threads.append(thread)
+            self._logger.info(f"Starting thread {t_name} ({i}/{len(self._offer_sets[0])})")
             thread.start()
+
+        for t in threads:
+            t.join()
 
         with self._lock:
             return self._lowest_offer
 
     def _find_lowest(self, reference_offers: OfferCollection, card_id: int) -> None:
+        # if not card_id < len(self._offer_sets) - 1:
+        #     return
         card = self._all_cards[card_id]
         buf_offer = reference_offers.remove(card)
 
@@ -109,6 +138,10 @@ class OrderFinder:
                 self._find_lowest(checked_offer, card_id + 1)
             else:
                 self._increment_check()
-                with self._lock:
-                    if checked_offer.sum() < self._lowest_offer.sum():
-                        self._lowest_offer = checked_offer
+                self._update_lowest_offer(checked_offer)
+
+    def _update_lowest_offer(self, offer: OfferCollection):
+        with self._lock:
+            if offer.sum() < self._lowest_offer.sum():
+                self._logger.info(f"Replacing {self._lowest_offer.sum()} with {offer.sum()}")
+                self._lowest_offer = offer

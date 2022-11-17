@@ -7,13 +7,15 @@ class Offer:
     _seller: Seller
     _amount: int
     _price: float
+    _expansion: str
 
-    def __init__(self, card: Card, seller: Seller, amount: int, price: float):
+    def __init__(self, card: Card, seller: Seller, amount: int, price: float, expansion: str):
         self._card = card
         self._seller = seller
         self._amount = amount
         self._price = price
         self._shipping = 1.15
+        self._expansion = expansion
 
     def __str__(self):
         # return f"{self._seller}: {self._amount} for {self._price}"
@@ -50,3 +52,7 @@ class Offer:
     @property
     def price(self) -> float:
         return self._price
+
+    @property
+    def expansion(self) -> str:
+        return self._expansion

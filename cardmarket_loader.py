@@ -67,7 +67,7 @@ class CardmarketLoader:
         return params
 
     @staticmethod
-    def _check_for_errors(html: str) -> None:
+    def _check_for_errors(html: str, expansion: str) -> None:
         """
         Checks the html response for any displayed errors
 
@@ -78,11 +78,30 @@ class CardmarketLoader:
         """
         expansion_error = True if re.findall("class=\"alert-heading\">Fehler: Ungültige Erweiterung</", html) else False
         if expansion_error:
-            raise ExpansionError()
+            raise ExpansionError(expansion)
 
         product_error = True if re.findall("class=\"alert-heading\">Ungültiges Produkt</", html) else False
         if product_error:
-            raise ProductError()
+            raise ProductError(expansion)
+
+    def _parse_offers(self, data: str, card: Card, expansion: str) -> List[Offer]:
+        sellers = re.findall("<div id=\"(articleRow\\d+?)\" class=\".+? article-row\">",
+                             data)
+        offers = []
+        for key in sellers:
+            seller_data = BeautifulSoup(data, 'html.parser').find('div', id=key)
+            str_data = str(seller_data)
+            try:
+                name = re.findall("<a href=\"/de/Magic/Users/(.+?)\">", str_data)
+                count = re.findall("<span class=\"item-count small text-right\">(\\d+?)</span></div>", str_data)
+                price = re.findall("\">(\\d+?,\\d+?) €</span>", str_data)
+                name = name[0]
+                count = int(count[0])
+                price = float(price[0].replace(",", "."))
+                offers.append(Offer(card, Seller(name, 1.15), count, price, expansion))
+            except (IndexError, ValueError) as err:
+                self._logger.error(err.args[0])
+        return offers
 
     def load_offers_for_card(self, card: Card) -> List[Offer]:
         """
@@ -95,30 +114,29 @@ class CardmarketLoader:
         :raises ProductError: If the card does not exist
         """
         self._logger.info(f"Loading offers for '{card}'")
-        uri = self._build_uri(_base_url, card.expansion, card.name)
+        uris = [(self._build_uri(_base_url, exp, card.name), exp) for exp in card.expansions]
+        # uri = self._build_uri(_base_url, card.expansion, card.name)
         params = self._prepare_params()
+        all_offers = []
+        for uri, expansion in uris:
+            resp = requests.get(uri, params=params)
+            if not resp.status_code == 200:
+                raise DataLoadError(resp.status_code)
+
+            self._check_for_errors(resp.text, expansion)
+
+            self._logger.debug("Got response without errors")
+
+            offers = self._parse_offers(resp.text, card, expansion)
+            all_offers += offers
+        return all_offers
+
+    def find_expansion(self, card_id: str) -> List[str]:
+        # https://www.cardmarket.com/de/Magic/Products/Search?searchString=Entdeckungen+der+Sippe
+        uri = self._build_uri("https://www.cardmarket.com/de/Magic/Products/Search")
+        params = {"searchString": card_id.replace(" ", "+")}
         resp = requests.get(uri, params=params)
         if not resp.status_code == 200:
             raise DataLoadError(resp.status_code)
-
-        self._check_for_errors(resp.text)
-
-        self._logger.debug("Got response without errors")
-
-        sellers = re.findall("<div id=\"(articleRow\\d+?)\" class=\".+? article-row\">",
-                             resp.text)
-        offers = []
-        for key in sellers:
-            seller_data = BeautifulSoup(resp.text, 'html.parser').find('div', id=key)
-            str_data = str(seller_data)
-            try:
-                name = re.findall("<a href=\"/de/Magic/Users/(.+?)\">", str_data)
-                count = re.findall("<span class=\"item-count small text-right\">(\\d+?)</span></div>", str_data)
-                price = re.findall("\">(\\d+?,\\d+?) €</span>", str_data)
-                name = name[0]
-                count = int(count[0])
-                price = float(price[0].replace(",", "."))
-                offers.append(Offer(card, Seller(name, 1.15), count, price))
-            except (IndexError, ValueError) as err:
-                self._logger.error(err.args[0])
-        return offers
+        exp_data = re.findall("<a href=\"/de/Magic/Products/Singles/(.+?)/(.+?)\">.+?</a>", resp.text)
+        return [x for x, y in exp_data]

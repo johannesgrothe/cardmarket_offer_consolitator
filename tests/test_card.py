@@ -5,6 +5,6 @@ _name = "test_name"
 
 
 def test_card():
-    card = Card(_exp, _name)
-    assert card.expansion == _exp
+    card = Card([_exp], _name)
+    assert card.expansions == [_exp]
     assert card.name == _name

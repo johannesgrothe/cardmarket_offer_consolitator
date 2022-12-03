@@ -3,6 +3,8 @@ import pytest
 from card import Card
 from cardmarket_loader import CardmarketLoader
 from offer import Offer
+from offer_collection import OfferCollection
+from offer_set import OfferSet
 from order_finder import OrderFinder
 from search_settings import SearchSettings
 from seller import Seller
@@ -39,4 +41,8 @@ def f_all_offers() -> dict[Card, list[Offer]]:
 def test_order_finder(f_all_offers):
     finder = OrderFinder(f_all_offers)
     result = finder.find_lowest_offer()
-    assert result
+    assert result == OfferCollection([
+        OfferSet([Offer(_card1, _seller3, 2, 0.30, "expansion-1")]),
+        OfferSet([Offer(_card2, _seller6, 1, 0.48, "expansion-1")]),
+        OfferSet([Offer(_card3, _seller6, 1, 0.55, "expansion-1")])
+    ])

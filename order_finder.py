@@ -28,7 +28,7 @@ class OrderFinder:
         self._lock = threading.Lock()
         buf_offers = all_offers
         # buf_offers = self._remove_single_sellers(all_offers)
-        buf_offers = self._remove_expensive_offers(buf_offers)
+        # buf_offers = self._remove_expensive_offers(buf_offers)
         buf_offers = self._transform_to_sets(buf_offers)
         self._all_cards = [x for x in buf_offers.keys()]
         self._performed_checks = 0
@@ -108,7 +108,7 @@ class OrderFinder:
         self._logger.info(f"Searching for lowest combination in {self.total_checks} total combinations")
 
         threads = []
-        card = self._all_cards[0]
+        card = self._offer_sets[0][0].card
         buf_offer = self._lowest_offer.remove(card)
         for i, offer_set in enumerate(self._offer_sets[0]):
             t_name = f"Thread_{i}"
@@ -127,9 +127,7 @@ class OrderFinder:
             return self._lowest_offer
 
     def _find_lowest(self, reference_offers: OfferCollection, card_id: int) -> None:
-        # if not card_id < len(self._offer_sets) - 1:
-        #     return
-        card = self._all_cards[card_id]
+        card = self._offer_sets[card_id][0].card
         buf_offer = reference_offers.remove(card)
 
         for offer in self._offer_sets[card_id]:

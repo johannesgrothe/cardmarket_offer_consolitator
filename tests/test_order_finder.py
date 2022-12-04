@@ -38,9 +38,10 @@ def f_all_offers() -> dict[Card, list[Offer]]:
     return offers
 
 
-def test_order_finder(f_all_offers):
+@pytest.mark.parametrize("thread_count", [-1, 0, 1, 2, 3, 4, 5, 10000])
+def test_order_finder(f_all_offers, thread_count):
     finder = OrderFinder(f_all_offers)
-    result = finder.find_lowest_offer()
+    result = finder.find_lowest_offer(thread_count)
     assert result == OfferCollection([
         OfferSet([Offer(_card1, _seller3, 2, 0.30, "expansion-1")]),
         OfferSet([Offer(_card2, _seller6, 1, 0.48, "expansion-1")]),

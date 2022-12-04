@@ -107,6 +107,18 @@ class OrderFinder:
     def find_lowest_offer(self) -> OfferCollection:
         self._logger.info(f"Searching for lowest combination in {self.total_checks} total combinations")
 
+        # thread_count = 6
+        # o_count = len(self._offer_sets[0])
+        # thread_size = (o_count // thread_count)
+        # if thread_size < 1:
+        #     thread_size = 1
+        # thread_intervals = list(range(0, o_count, thread_size))
+        # if len(thread_intervals) < thread_count + 1:
+        #     thread_intervals += [o_count]
+        # else:
+        #     thread_intervals = thread_intervals[:-1] + [o_count]
+        # thread_ranges = [list(range(thread_intervals[x], thread_intervals[x+1])) for x in range(len(thread_intervals)-1)]
+
         threads = []
         card = self._offer_sets[0][0].card
         buf_offer = self._lowest_offer.remove(card)
@@ -117,11 +129,30 @@ class OrderFinder:
                                       name=t_name,
                                       daemon=True)
             threads.append(thread)
-            self._logger.info(f"Starting thread {t_name} ({i}/{len(self._offer_sets[0])})")
-            thread.start()
+            self._logger.info(f"Creating thread {t_name} ({i}/{len(self._offer_sets[0])})")
 
-        for t in threads:
-            t.join()
+        running = []
+        while True:
+            if len(running) < 50:
+                if threads:
+                    to_start = threads.pop()
+                    to_start.start()
+                    self._logger.info(f"Starting thread {to_start.name}")
+                    running.append(to_start)
+
+            done = []
+            for thread in running:
+                try:
+                    thread.join(timeout=.1)
+                    done.append(thread)
+                except TimeoutError:
+                    pass
+
+            for thread in done:
+                running.remove(thread)
+
+            if not running and not threads:
+                break
 
         with self._lock:
             return self._lowest_offer

@@ -1,12 +1,11 @@
 import pytest
 
 from card import Card
-from cardmarket_loader import CardmarketLoader
 from offer import Offer
 from offer_collection import OfferCollection
 from offer_set import OfferSet
+from offer_set_transformer import OfferSetTransformer
 from order_finder import OrderFinder
-from search_settings import SearchSettings
 from seller import Seller
 
 _card1 = Card("expansion-1", "card-1", 2)
@@ -23,7 +22,7 @@ _seller8 = Seller("seller-8", 1.15)
 
 
 @pytest.fixture
-def f_all_offers() -> dict[Card, list[Offer]]:
+def f_all_offers() -> dict[Card, list[OfferSet]]:
     offers = {
         _card1: [Offer(_card1, _seller1, 1, 0.10, "expansion-1"),
                  Offer(_card1, _seller2, 1, 0.12, "expansion-1"),
@@ -35,7 +34,7 @@ def f_all_offers() -> dict[Card, list[Offer]]:
                  Offer(_card3, _seller6, 1, 0.55, "expansion-1"),
                  Offer(_card3, _seller7, 1, 1.10, "expansion-1")]
     }
-    return offers
+    return OfferSetTransformer(offers).data
 
 
 @pytest.mark.parametrize("thread_count", [-1, 0, 1, 2, 3, 4, 5, 10000])

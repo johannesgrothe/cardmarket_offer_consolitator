@@ -149,11 +149,13 @@ def main():
 
     offer_filter = OfferFilter(all_offers)
     total_offers = sum([len(x) for y, x in offer_filter.data.items()])
-    print(f"[i] Reduced offers to {total_offers} viable ones")
+    max_offers = max([len(x) for y, x in offer_filter.data.items()])
+    print(f"[i] Reduced offers to {total_offers} viable ones (max: {max_offers})")
 
     set_transformer = OfferSetTransformer(offer_filter.data)
     total_offers = sum([len(x) for y, x in set_transformer.data.items()])
-    print(f"[i] Transformed offers to {total_offers} sets")
+    max_offers = max([len(x) for y, x in set_transformer.data.items()])
+    print(f"[i] Transformed offers to {total_offers} sets (max: {max_offers})")
 
     print()
     order_finder = OrderFinder(set_transformer.data)

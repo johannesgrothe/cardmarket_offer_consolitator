@@ -7,6 +7,8 @@ from typing import Tuple
 from cardmarket_loader import CardmarketLoader, DataLoadError, ExpansionError, ProductError
 from file_loader import FileLoader
 from offer import Offer
+from offer_filter import OfferFilter
+from offer_set_transformer import OfferSetTransformer
 from order_finder import OrderFinder
 from search_settings import SearchSettings
 from settings_loader import SettingsLoader
@@ -145,8 +147,16 @@ def main():
     legal_cards = len(all_offers.keys())
     print(f"[i] {total_offers} total offers collected for {legal_cards} cards")
 
+    offer_filter = OfferFilter(all_offers)
+    total_offers = sum([len(x) for y, x in offer_filter.data.items()])
+    print(f"[i] Reduced offers to {total_offers} viable ones")
+
+    set_transformer = OfferSetTransformer(offer_filter.data)
+    total_offers = sum([len(x) for y, x in set_transformer.data.items()])
+    print(f"[i] Transformed offers to {total_offers} sets")
+
     print()
-    order_finder = OrderFinder(all_offers)
+    order_finder = OrderFinder(set_transformer.data)
     indicator = UpdatedLoadingIndicator(order_finder.total_checks, lambda: order_finder.performed_checks, precision=1,
                                         message="Searching for lowest combination of sellers...")
     with indicator:

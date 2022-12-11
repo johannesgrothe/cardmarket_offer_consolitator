@@ -150,7 +150,7 @@ def main():
     indicator = UpdatedLoadingIndicator(order_finder.total_checks, lambda: order_finder.performed_checks, precision=1,
                                         message="Searching for lowest combination of sellers...")
     with indicator:
-        cheapest_combination = order_finder.find_lowest_offer()
+        cheapest_combination = order_finder.find_lowest_offer(thread_count=1)
 
     sellers = cheapest_combination.sellers
     sellers.sort()

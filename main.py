@@ -147,7 +147,7 @@ def main():
 
     print()
     order_finder = OrderFinder(all_offers)
-    indicator = UpdatedLoadingIndicator(order_finder.total_checks, order_finder.get_performed_checks, precision=1,
+    indicator = UpdatedLoadingIndicator(order_finder.total_checks, lambda: order_finder.performed_checks, precision=1,
                                         message="Searching for lowest combination of sellers...")
     with indicator:
         cheapest_combination = order_finder.find_lowest_offer()

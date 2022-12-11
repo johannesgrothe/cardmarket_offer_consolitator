@@ -47,3 +47,4 @@ def test_order_finder(f_all_offers, thread_count):
         OfferSet([Offer(_card2, _seller6, 1, 0.48, "expansion-1")]),
         OfferSet([Offer(_card3, _seller6, 1, 0.55, "expansion-1")])
     ])
+    assert finder.performed_checks == finder.total_checks

@@ -1,17 +1,22 @@
+import logging
+
 from offer import Offer
 from offer_set import OfferSet
 
 
 class OfferSetCreator:
+    _logger: logging.Logger
     _offers: list[Offer]
     _sets: list[OfferSet]
 
     def __init__(self, offers: list[Offer]):
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._sets = []
+        self._logger.info(f"Initializing set creator...")
         self._offers = offers
         for offer in self._offers:
             if offer.card != self._offers[0].card:
                 raise ValueError("All Offers must be for the same Card")
-        self._sets = []
         self._create_sets()
         self._remove_doubles()
 

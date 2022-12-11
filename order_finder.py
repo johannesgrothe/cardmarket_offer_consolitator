@@ -1,5 +1,6 @@
 import logging
 import threading
+from typing import Optional
 
 from card import Card
 from offer import Offer
@@ -11,7 +12,6 @@ from set_creator import OfferSetCreator
 class OrderFinder:
     _logger: logging.Logger
     _lock: threading.Lock
-    # all_offers: dict[Card, list[OfferSet]]
     _offer_sets: list[list[OfferSet]]
     _all_cards: list[Card]
     _performed_checks: int
@@ -33,14 +33,14 @@ class OrderFinder:
         self._all_cards = [x for x in buf_offers.keys()]
         self._performed_checks = 0
 
-        self._total_checks = 1
-        for _, offer_sets in all_offers.items():
-            self._total_checks *= len(offer_sets)
-        self._logger.info(f"Created OrderFinder for {len(buf_offers)} cards")
-
         self._offer_sets = [y for x, y in buf_offers.items()]
         self._offer_sets.sort(key=len)
         self._offer_sets.reverse()
+
+        self._total_checks = 1
+        for offer_sets in self._offer_sets:
+            self._total_checks *= len(offer_sets)
+        self._logger.info(f"Created OrderFinder for {len(buf_offers)} cards")
 
         self._lock = threading.Lock()
         reference_sets = [x[0] for x in self._offer_sets]
@@ -50,7 +50,8 @@ class OrderFinder:
     def total_checks(self) -> int:
         return self._total_checks
 
-    def get_performed_checks(self) -> int:
+    @property
+    def performed_checks(self) -> int:
         with self._lock:
             return self._performed_checks
 
@@ -124,16 +125,16 @@ class OrderFinder:
 
         threads = []
         for i, t_range in enumerate(thread_ranges):
-            t_name = f"Thread_[{'-'.join([str(x) for x in t_range])}]"
+            t_name = f"Thread_[{t_range[0]}-{t_range[-1]}]"
             thread = threading.Thread(target=self._find_lowest,
                                       args=[self._lowest_offer, 0, t_range],
                                       name=t_name,
                                       daemon=True)
-            self._logger.info(f"Creating thread {t_name} ({i}/{len(thread_ranges)})")
+            self._logger.info(f"Creating thread {t_name} ({i + 1}/{len(thread_ranges)})")
             threads.append(thread)
 
         for i, thread in enumerate(threads):
-            self._logger.info(f"Starting thread {thread.name} ({i}/{len(threads)})")
+            self._logger.info(f"Starting thread {thread.name} ({i + 1}/{len(threads)})")
             thread.start()
 
         for thread in threads:
@@ -142,18 +143,19 @@ class OrderFinder:
         with self._lock:
             return self._lowest_offer
 
-    def _find_lowest(self, reference_offers: OfferCollection, card_id: int, offer_range: list[int]) -> None:
+    def _find_lowest(self, reference_offers: OfferCollection, card_id: int, offer_range: Optional[list[int]] = None):
+        if offer_range is None:
+            offer_range = range(len(self._offer_sets[card_id]))
         card = self._offer_sets[card_id][0].card
         buf_offer = reference_offers.remove(card)
         offer_sets = self._offer_sets[card_id]
 
         for i in offer_range:
             offer = offer_sets[i]
-            # for offer in self._offer_sets[card_id]:
             checked_offer = buf_offer.add(offer)
             if card_id < len(self._offer_sets) - 1:
                 new_id = card_id + 1
-                self._find_lowest(checked_offer, new_id, list(range(len(self._offer_sets[new_id]))))
+                self._find_lowest(checked_offer, new_id)
             else:
                 self._increment_check()
                 self._update_lowest_offer(checked_offer)
